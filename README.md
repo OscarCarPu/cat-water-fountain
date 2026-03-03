@@ -1,6 +1,9 @@
 # cat-water-fountain
 Drinking fountain for cats with tracking of ml drank and sensors for activating only when cat is close.
 
+More docs and specs and definitivie on `docs/`:
+- [software](docs/software.md)
+
 # Initial ideas 
 
 ## Hardware

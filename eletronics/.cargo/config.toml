@@ -1,0 +1,18 @@
+[build]
+target = "xtensa-esp32-none-elf"
+
+[unstable]
+build-std = ["core", "alloc"]
+
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --monitor --chip esp32 --before defualt-reset --baud 115200"
+
+[target.riscv32imc-unknown-none-elf]
+runner = "espflash flash --monitor --chip esp32c3"
+
+[alias]
+build-devkit = "build --target xtensa-esp32-none-elf --features esp32 --release"
+build-devkit-c3 = "build --target riscv32imc-unknown-none-elf --features esp32c3 --release"
+
+run-devkit = "run --target xtensa-esp32-none-elf --features esp32 --release"
+run-devkit-c3 = "run --target riscv32imc-unknown-none-elf --features esp32c3 --release"

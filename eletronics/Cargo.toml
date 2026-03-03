@@ -1,0 +1,20 @@
+[package]
+name = "HC-SR04"
+version = "0.1.0"
+rust-version = "1.88"
+edition = "2024"
+
+[features]
+default = ["esp32"]
+esp32 = ["esp-hal/esp32","esp-println/esp32","esp-backtrace/esp32","esp-println/uart","esp-rtos/esp32","esp-bootloader-esp-idf/esp32"]
+esp32c3 = ["esp-hal/esp32c3","esp-println/esp32c3","esp-backtrace/esp32c3","esp-println/auto","esp-rtos/esp32c3", "esp-bootloader-esp-idf/esp32c3"]
+
+[dependencies]
+esp-hal = {version="~1.0",features=["unstable"]}
+esp-rtos = {version="0.2.0", features = ["embassy"]}
+esp-bootloader-esp-idf = "0.4.0"
+embassy-executor = "0.9.1"
+embassy-time = "0.5.0"
+esp-backtrace = { version = "0.18", default-features = false, features = ["panic-handler", "println"]}
+esp-println = { version = "0.16", default-features = false}
+hcsr04 = "0.1.3"
