@@ -3,16 +3,17 @@ Drinking fountain for cats with tracking of ml drank and sensors for activating 
 
 More docs and specs and definitivie on `docs/`:
 - [software](docs/software.md)
+- [hardware](docs/hardware.md)
 
 # Initial ideas 
 
 ## Hardware
 - Water motor for pumping the water up
-- 3d printed container and output of water from it 
+- Food safe plastic container as water tank
+- 3d printed PLA enclosure and water output/spout
 - Ultrasonic Sensor for detecting if cat is close
 - Esp32 for sending data
 - water level ultrasonic
-- Some exposy resin for coating the container FOOD SAFE
 - Something heavy so the container doesn't fall 
 - Filtration: active carbon? or something like it
 - Air flow so there is no condensation for the sensors
