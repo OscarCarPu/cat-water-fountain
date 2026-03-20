@@ -2,6 +2,35 @@ fn main() {
     linker_be_nice();
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)
     println!("cargo:rustc-link-arg=-Tlinkall.x");
+    load_dotenv("../.env");
+    load_dotenv(".env");
+}
+
+fn load_dotenv(path: &str) {
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let full_path = std::path::Path::new(&manifest_dir).join(path);
+
+    println!("cargo:rerun-if-changed={}", full_path.display());
+
+    let contents = match std::fs::read_to_string(&full_path) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("cargo:warning=Could not read {} file: {}", path, e);
+            return;
+        }
+    };
+
+    for line in contents.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((key, val)) = line.split_once('=') {
+            let key = key.trim();
+            let val = val.trim();
+            println!("cargo:rustc-env={}={}", key, val);
+        }
+    }
 }
 
 fn linker_be_nice() {
@@ -63,8 +92,11 @@ fn linker_be_nice() {
         std::process::exit(0);
     }
 
-    println!(
-        "cargo:rustc-link-arg=-Wl,--error-handling-script={}",
-        std::env::current_exe().unwrap().display()
-    );
+    let target = std::env::var("TARGET").unwrap_or_default();
+    if !target.starts_with("riscv") {
+        println!(
+            "cargo:rustc-link-arg=-Wl,--error-handling-script={}",
+            std::env::current_exe().unwrap().display()
+        );
+    }
 }
