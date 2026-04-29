@@ -7,7 +7,6 @@ edition = "2024"
 [features]
 default = ["esp32"]
 esp32 = ["esp-hal/esp32","esp-println/esp32","esp-backtrace/esp32","esp-println/uart","esp-rtos/esp32","esp-bootloader-esp-idf/esp32", "esp-radio/esp32"]
-esp32c3 = ["esp-hal/esp32c3","esp-println/esp32c3","esp-backtrace/esp32c3","esp-println/auto","esp-rtos/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-radio/esp32c3"]
 
 [dependencies]
 esp-hal = {version="~1.0",features=["unstable"]}
