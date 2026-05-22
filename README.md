@@ -1,65 +1,89 @@
 # cat-water-fountain
-Drinking fountain for cats with tracking of ml drank and sensors for activating only when cat is close.
+Automated drinking fountain for cats. Designed to activate a water pump when a cat is detected nearby and publish water level to an MQTT broker — currently in development.
 
-More docs and specs and definitivie on `docs/`:
-- [software](docs/software.md)
-- [hardware](docs/hardware.md)
+More detailed docs in `docs/`:
+- [Software](docs/software.md)
+- [Hardware](docs/hardware.md)
 
-# Initial ideas 
+## Tech stack
 
-## Hardware
-- Water motor for pumping the water up
-- Food safe plastic container as water tank
-- 3d printed PLA enclosure and water output/spout
-- Ultrasonic Sensor for detecting if cat is close
-- Esp32 for sending data
-- water level ultrasonic
-- Something heavy so the container doesn't fall 
-- Filtration: active carbon? or something like it
-- Air flow so there is no condensation for the sensors
+Bare-metal Rust on an ESP32 (Xtensa LX6), no operating system:
 
-## Software
-- Keeping track of the water that its drank, a history of it.
-- Sending data to the server each 5 min 
-- When the cat is close, activate the water pump 
-- WHen the water is low, send a message through telegram for filling the water 
-- Alerts if the cats aren't drinking or similar things
+- `esp-hal` — hardware abstraction
+- `esp-rtos` + `embassy-executor` — async runtime
+- `embassy-net` + `esp-radio` — TCP/IP and WiFi
+- `rust-mqtt` — MQTT v5 client
 
 ## Electronics
-- Esp32-c3 mini 3.2 V with a LiFePO4 battery
-- HC-SR04 Ultrasonic x2
-- USB Submersible Pump
-- 5V batteryA 1A min
 
-Others:
-- Diodes as shields 
-- resistors 
-- Logic MOSFET
+| Component | Part |
+|---|---|
+| Microcontroller | ESP32 (Xtensa LX6) |
+| Cat sensor | HC-SR04 ultrasonic |
+| Water level sensor | HC-SR04 ultrasonic |
+| Pump | USB submersible 5V (TUNFAN PT-100cm, 150L/H) |
+| Pump switch | IRLZ44N logic-level MOSFET |
+| Flyback protection | 1N4001 diode across pump |
+| Power | 3.2V LiFePO4 (MCU) + 5V power bank (pump and sensors) |
 
-### Schema connection
+## Architecture
 
-**ESP32-C3**
-3.2V -> ESP32-c3 
+Designed around two concurrent embassy tasks plus a main loop:
 
-**Sensors to ESP32-C3**
-Ultrasonic cat echo -> 3kΩ -> ESP32-c3 -> Ultrasonic cat trig
-Ultrasonic water level echo -> 3kΩ -> ESP32-c3 -> Ultrasonic water level trig
-ESP32-C3 -> 330Ω -> Logic MOSFET IRLZ44N -> pump 
+1. **`detect_cat_task`** — polls the cat HC-SR04 every 100 ms and writes the result to a `static AtomicBool CAT_PRESENT`. Runs independently so motor reaction time stays around 100 ms regardless of the slower main cycle.
+2. **`maintain_wifi_connection` / `run_network_stack`** — keeps the WiFi link and embassy-net stack alive; reconnects on disconnect. *(planned)*
+3. **Main loop** (every 5 s) — reads water level (10-sample median-filtered HC-SR04), reads `CAT_PRESENT`, switches the motor on/off via MOSFET, publishes water level to MQTT. *(planned)*
 
+## Configuration
 
-**5V and GND**
-Directly to the pump and sensors on parallel 
-MOSFET -> 10kΩ -> GND
+Copy `eletronics/.env.example` to `eletronics/.env` and fill in:
 
-### Other things
-Comon ground of the batteris
+| Variable | Purpose |
+|---|---|
+| `WIFI_SSID` | WiFi network name |
+| `WIFI_PASSWORD` | WiFi password |
+| `MQTT_SERVER` | Broker URL — must be `mqtt://<ipv4>:<port>` (hostnames not yet supported) |
+| `MQTT_USER` | MQTT username |
+| `MQTT_PASSWORD` | MQTT password |
 
-Between the echo pin of the ultrasonic and the input pin of the esp32:
-Echo pin -> 1kΩ -> Input pin 
-Input pin -> 2kΩ -> GND
+Credentials are compiled into the firmware at build time via `build.rs`.
 
-A 1000uF capacitor as close to the battery
+## GPIO pin assignment
 
-A 0.1uF capacitor on the motor terminals for noise
+| Function | Pin |
+|---|---|
+| Cat sensor — HC-SR04 trig | GPIO5 |
+| Cat sensor — HC-SR04 echo | GPIO18 (via 1kΩ/2kΩ divider) |
+| Water sensor — HC-SR04 trig | GPIO19 |
+| Water sensor — HC-SR04 echo | GPIO21 (via 1kΩ/2kΩ divider) |
+| Motor MOSFET gate | GPIO22 |
 
-Diode between the mosfet and the pump  1N4001, parallel
+## Build & flash
+
+```sh
+make esp32-build-dev    # compile
+make esp32-flash-dev    # compile, flash, and open serial monitor on /dev/ttyUSB0
+make esp32-stop-dev     # erase flash
+```
+
+Requires the Espressif toolchain (`~/export-esp.sh`) and `espflash`.
+
+## MQTT topics *(planned)*
+
+| Topic | Direction | Payload | Cadence |
+|---|---|---|---|
+| `cat-water/water-level` | publish | filtered distance in cm, e.g. `"7.3"` | every 5 s |
+| `cat-water/heartbeat` | publish | uptime or ping | every 5 s |
+
+## Feature status
+
+- [x] Hardware and system design
+- [x] HC-SR04 distance reading
+- [ ] HC-SR04 water level measurement
+- [ ] Motor control via MOSFET
+- [ ] MVP with just motor activated on cat detected
+- [ ] ml-drank tracking
+- [ ] MQTT water level publishing
+- [ ] Heartbeat MQTT
+- [ ] Telegram alerts (low-water / no heartbeat)
+- [ ] Polishing details and structure

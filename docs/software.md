@@ -45,44 +45,42 @@ Copy `eletronics/.env.example` to `eletronics/.env` and fill it in before buildi
 
 ## Architecture
 
-Two concurrent embassy tasks plus the main loop:
+Designed around two concurrent embassy tasks plus a main loop:
 
-1. **`maintain_wifi_connection` / `run_network_stack`** — keep the WiFi link and embassy-net stack alive; reconnect on disconnect.
-2. **`detect_cat_task`** — fast cat detection. Polls the cat HC-SR04 every 100 ms with a single measurement and writes the boolean result to a `static AtomicBool CAT_PRESENT`.
-3. **`main` loop** (every 5 s):
+1. **`detect_cat_task`** — polls the cat HC-SR04 every 100 ms with a single measurement and writes the boolean result to a `static AtomicBool CAT_PRESENT`. Running it as its own task keeps motor reaction time around 100 ms, independent of the slower main cycle.
+2. **`maintain_wifi_connection` / `run_network_stack`** — keep the WiFi link and embassy-net stack alive; reconnect on disconnect. *(planned)*
+3. **`main` loop** (every 5 s) *(planned)*:
    - Read water level (10-sample median-filtered HC-SR04 read on the water sensor).
-   - Read `CAT_PRESENT` and switch the motor on or off accordingly.
+   - Read `CAT_PRESENT` and switch the motor on or off via MOSFET.
    - Publish the water level to MQTT.
 
-Splitting cat detection into its own task keeps motor reaction time around 100 ms, independent of the slower water/MQTT cycle.
+## Motor control *(planned)*
 
-## Motor control
-
-The motor (USB submersible pump) is gated by an IRLZ44N logic-level MOSFET driven from GPIO22.
+The motor (USB submersible pump) will be gated by an IRLZ44N logic-level MOSFET driven from GPIO22.
 
 - `Motor::on()` drives the gate high → pump runs.
 - `Motor::off()` drives the gate low → 10kΩ gate pull-down keeps the MOSFET off.
 
-The main loop calls `motor.on()` when `cat_distance_cm < 25.0` and `motor.off()` otherwise (or on sensor-read failure — fail-safe). The threshold is `CAT_DETECTION_THRESHOLD_CM` in `main.rs`.
+The main loop will call `motor.on()` when `CAT_PRESENT` is true and `motor.off()` otherwise (fail-safe on sensor error). Detection threshold is `CAT_DETECTION_THRESHOLD_CM` in `main.rs`.
 
-## MQTT topics
+## MQTT topics *(planned)*
 
 | Topic | Direction | Payload | Cadence |
 |---|---|---|---|
 | `cat-water/water-level` | publish | filtered distance in cm, formatted as `%.1f` (e.g. `"7.3"`) | every 5 s |
+| `cat-water/heartbeat` | publish | uptime or ping | every 5 s |
 
-The client connects, publishes, and disconnects each cycle; there is no persistent session.
-
-Cat-presence events are not currently published — only the motor is driven from them locally. Adding a `cat-water/cat-present` topic is a future extension.
+The client will connect, publish, and disconnect each cycle; no persistent session.
 
 ## Feature status
 
-- [x] reading from hc-sr04
-- [x] mqtt sending data to server (water level)
-- [x] sending info to motor with MOSFET
-- [x] reading cat distance from hc-sr04
-- [x] reading water level from hc-sr04
+- [x] Hardware and system design
+- [x] HC-SR04 distance reading
+- [ ] HC-SR04 water level measurement
+- [ ] Motor control via MOSFET
+- [ ] MVP with just motor activated on cat detected
 - [ ] ml-drank tracking
-- [ ] low-water Telegram alert
-- [ ] ping/heartbeat topic
-- [ ] deep sleep between reads (currently uses `Timer::after_millis` to pace the loop; light/deep sleep was removed because it disconnects WiFi)
+- [ ] MQTT water level publishing
+- [ ] Heartbeat MQTT
+- [ ] Telegram alerts (low-water / no heartbeat)
+- [ ] Polishing details and structure

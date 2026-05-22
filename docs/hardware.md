@@ -32,9 +32,8 @@ PVC Transparent Water Tube:
 
 ## Microcontroller
 
-ESP32-C3 SuperMini:
-- Chip: ESP32-C3
-- Features: WiFi, Bluetooth BLE
+ESP32 (Xtensa LX6):
+- Features: WiFi, Bluetooth
 - Operating voltage: 3.3V
 - TODO: add specific board link and detailed specs
 
