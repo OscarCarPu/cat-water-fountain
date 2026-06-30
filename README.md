@@ -1,3 +1,5 @@
+> ⚠️ **Project abandoned because there are no more cats.**
+
 # cat-water-fountain
 Automated drinking fountain for cats. Designed to activate a water pump when a cat is detected nearby and publish water level to an MQTT broker — currently in development.
 
